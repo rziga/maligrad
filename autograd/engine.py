@@ -107,6 +107,12 @@ class DataNode(Node):
         slice_node = Slice()
         return slice_node(self, slices)
     
+    # Useful ops from numpy
+    
+    def reshape(self, new_shape: Union[List[int], Tuple[int]]) -> "DataNode":
+        reshape_node = Reshape()
+        return reshape_node(self, new_shape)
+    
 
 ##########################
 # FunctionNode
@@ -228,6 +234,6 @@ class Reshape(FunctionNode):
         return data.reshape(new_shape)
     
     def _backward(self, partial: ndarray) -> Tuple[ndarray]:
-        old_shape = self.backprop_assets
+        (old_shape, ) = self.backprop_assets
         return (partial.reshape(old_shape), )
     
