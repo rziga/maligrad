@@ -1,4 +1,6 @@
 import numpy as np
+from numpy import ndarray # for typing only
+
 from typing import List, Union, Set, Any, Tuple
 from abc import abstractmethod
 
@@ -29,24 +31,28 @@ class Node:
         return out
     
 
+##########################
+# DataNode
+##########################
+
 class DataNode(Node):
 
-    def __init__(self, data: Union[np.ndarray, Any], requires_grad: bool = False) -> None:
+    def __init__(self, data: Union[ndarray, Any], requires_grad: bool = False) -> None:
         super().__init__([]) # [origin FunctionNode] - [] for natural init
-        self.data = data if isinstance(data, np.ndarray) else np.array(data)
+        self.data = data if isinstance(data, ndarray) else np.array(data)
         self.grad = np.zeros_like(self.data) if requires_grad else None
 
-    def backward(self, partial: np.ndarray | None = None) -> None:
+    def backward(self, partial: ndarray | None = None) -> None:
         # start backprop
         if partial is None:
-            assert self.data.squeeze().ndim == 0, "bacprop without grad can be only started from scalars"
+            assert self.data.squeeze().ndim == 0, "bacprop without partial grad can be only started from scalars"
             partial = 1.
         self.grad += partial
         graph_nodes = [n for n in reversed(self.toposort()) if isinstance(n, FunctionNode)]
         for node in graph_nodes:
             node.backward()
 
-    def accumulate_grad(self, grad: np.ndarray) -> None:
+    def accumulate_grad(self, grad: ndarray) -> None:
         if self.grad.shape == grad.shape:
             self.grad += grad
         else:
@@ -102,6 +108,10 @@ class DataNode(Node):
         return slice_node(self, slices)
     
 
+##########################
+# FunctionNode
+##########################
+
 class FunctionNode(Node):
 
     def __init__(self) -> None:
@@ -138,11 +148,11 @@ class FunctionNode(Node):
                 c.accumulate_grad(grad)
 
     @abstractmethod
-    def _forward(self, *inputs: np.ndarray | Any) -> np.ndarray:
+    def _forward(self, *inputs: ndarray | Any) -> ndarray:
         raise NotImplementedError
     
     @abstractmethod
-    def _backward(self, *partials: np.ndarray) -> Tuple[np.ndarray]:
+    def _backward(self, *partials: ndarray) -> Tuple[ndarray]:
         raise NotImplementedError
 
     @property
@@ -156,54 +166,68 @@ class FunctionNode(Node):
         self.backprop_assets += to_save
 
 
+##########################
+# Function Definitions
+##########################
+
 class Add(FunctionNode):
 
-    def _forward(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def _forward(self, a: ndarray, b: ndarray) -> ndarray:
         return a + b
     
-    def _backward(self, partial: np.ndarray) -> Tuple[np.ndarray]:
+    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
         return partial, partial
     
 class Mul(FunctionNode):
 
-    def _forward(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def _forward(self, a: ndarray, b: ndarray) -> ndarray:
         self.save_for_backprop(a, b)
         return a * b
     
-    def _backward(self, partial: np.ndarray) -> Tuple[np.ndarray]:
+    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
         a, b = self.backprop_assets
         return b * partial, a * partial
 
 class Pow(FunctionNode):
 
-    def _forward(self, base: np.ndarray, exp: np.ndarray) -> np.ndarray:
+    def _forward(self, base: ndarray, exp: ndarray) -> ndarray:
         self.save_for_backprop(base, exp)
         return base ** exp
     
-    def _backward(self, partial: np.ndarray) -> Tuple[np.ndarray]:
+    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
         base, exp = self.backprop_assets
         return exp * base ** (exp - 1) * partial, base ** exp * np.log(base) * partial
 
 class Matmul(FunctionNode):
 
-    def _forward(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def _forward(self, a: ndarray, b: ndarray) -> ndarray:
         self.save_for_backprop(a, b)
         return a @ b
     
-    def _backward(self, partial: np.ndarray) -> Tuple[np.ndarray]:
+    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
         a, b = self.backprop_assets
         print(a.shape, b.shape, partial.shape)
         return partial @ b.swapaxes(-2, -1), a.swapaxes(-2, -1) @ partial
     
 class Slice(FunctionNode):
 
-    def _forward(self, data: np.ndarray, slices: Any) -> np.ndarray:
+    def _forward(self, data: ndarray, slices: Any) -> ndarray:
         self.save_for_backprop(slices, data.shape)
         return data[slices]
     
-    def _backward(self, partial: np.ndarray) -> Tuple[np.ndarray]:
+    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
         slices, original_shape = self.backprop_assets
         template = np.zeros(original_shape)
         template[slices] += partial
         return (template, )
+    
+class Reshape(FunctionNode):
+
+    def _forward(self, data: ndarray, new_shape: Tuple[int]) -> ndarray:
+        self.save_for_backprop(data.shape)
+        return data.reshape(new_shape)
+    
+    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
+        old_shape = self.backprop_assets
+        return (partial.reshape(old_shape), )
     
