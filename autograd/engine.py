@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import ndarray # for typing only
 
+import operator
 from typing import List, Union, Set, Any, Tuple
 from abc import abstractmethod
 
@@ -31,9 +32,9 @@ class Node:
         return out
     
 
-##########################
-# DataNode
-##########################
+##################################
+# DataNode - liek tensors in torch
+##################################
 
 class DataNode(Node):
 
@@ -103,15 +104,50 @@ class DataNode(Node):
         other = self.promote(other)
         return self * other ** -1
     
+    def __gt__(self, other: "DataNode" | Any) -> "DataNode":
+        compare_node = Compare(operator.gt)
+        return compare_node(self, other)
+    
+    def __ge__(self, other: "DataNode" | Any) -> "DataNode":
+        compare_node = Compare(operator.ge)
+        return compare_node(self, other)
+    
+    def __lt__(self, other: "DataNode" | Any) -> "DataNode":
+        compare_node = Compare(operator.lt)
+        return compare_node(self, other)
+    
+    def __le__(self, other: "DataNode" | Any) -> "DataNode":
+        compare_node = Compare(operator.le)
+        return compare_node(self, other)
+    
+    def __eq__(self, other: "DataNode" | Any) -> "DataNode":
+        compare_node = Compare(operator.eq)
+        return compare_node(self, other)
+    
+    def __ne__(self, other: "DataNode" | Any) -> "DataNode":
+        compare_node = Compare(operator.ne)
+        return compare_node(self, other)
+    
     def __getitem__(self, slices: Union[slice, List[slice]]) -> "DataNode":
         slice_node = Slice()
         return slice_node(self, slices)
+    
+    def __setitem__(self, slices: Union[slice, List[slice]]) -> "DataNode":
+        raise NotImplementedError("assignment currently not supported")
     
     # Useful ops from numpy
     
     def reshape(self, new_shape: Union[List[int], Tuple[int]]) -> "DataNode":
         reshape_node = Reshape()
         return reshape_node(self, new_shape)
+    
+    # str and repr
+
+    def __str__(self) -> str:
+        return f"""DataNode(\ndata=\n{self.data},\ngrad=\n{self.grad}\n)"""
+    
+    def __repr__(self) -> str:
+        return str(self)
     
 
 ##########################
@@ -137,10 +173,17 @@ class FunctionNode(Node):
         self.add_children(*input_data_nodes)
 
         # create new DataNode and add itself as its source
-        data = self._forward(*[i.data if isinstance(i, DataNode) else i for i in inputs])
-        new_data_node = DataNode(data, requires_grad=any(i.requires_grad for i in input_data_nodes))
+        forward_inputs = [i.data if isinstance(i, DataNode) else i for i in inputs]
+        data = self._forward(*forward_inputs)
         if not self._is_differentiable:
-            return new_data_node # result detached from current node
+            # result detached from computation graph
+            new_data_node = DataNode(data, requires_grad=False)
+            return new_data_node
+        
+        new_data_node = DataNode(
+            data,
+            requires_grad=any(i.requires_grad for i in input_data_nodes)
+            )
         new_data_node.add_children(self)
 
         # attach created DataNode as result
@@ -148,6 +191,8 @@ class FunctionNode(Node):
         return new_data_node
     
     def backward(self):
+        if not self._is_differentiable:
+            raise ValueError("backward cannot be used on non-differentiable FunctionNode")
         grads = self._backward(*[t.grad for t in self.results])
         for c, grad in zip(self.children, grads):
             if c.requires_grad:
@@ -157,12 +202,13 @@ class FunctionNode(Node):
     def _forward(self, *inputs: ndarray | Any) -> ndarray:
         raise NotImplementedError
     
-    @abstractmethod
     def _backward(self, *partials: ndarray) -> Tuple[ndarray]:
         raise NotImplementedError
 
     @property
     def _is_differentiable(self):
+        # set to false to disable gradient tracking
+        # must not use backward_if thats the case
         return True
     
     def attach_results(self, *results: DataNode) -> None:
@@ -175,6 +221,8 @@ class FunctionNode(Node):
 ##########################
 # Function Definitions
 ##########################
+
+# OP OVERRIDES
 
 class Add(FunctionNode):
 
@@ -226,7 +274,22 @@ class Slice(FunctionNode):
         template = np.zeros(original_shape)
         template[slices] += partial
         return (template, )
+
+class Compare(FunctionNode):
+
+    def __init__(self, compare_op) -> None:
+        super().__init__()
+        self.op = compare_op
+
+    def _forward(self, a: ndarray, b: ndarray | Any) -> ndarray:
+        return self.op(a, b)
     
+    @property
+    def _is_differentiable(self):
+        return False
+    
+# Useful numpy functions
+
 class Reshape(FunctionNode):
 
     def _forward(self, data: ndarray, new_shape: Tuple[int]) -> ndarray:
@@ -236,4 +299,14 @@ class Reshape(FunctionNode):
     def _backward(self, partial: ndarray) -> Tuple[ndarray]:
         (old_shape, ) = self.backprop_assets
         return (partial.reshape(old_shape), )
+    
+# Other
+
+class BoolMask(FunctionNode):
+    # TODO
+    def _forward(self, *inputs: ndarray | Any) -> ndarray:
+        return super()._forward(*inputs)
+    
+    def _backward(self, *partials: ndarray) -> Tuple[ndarray]:
+        return super()._backward(*partials)
     
