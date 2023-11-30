@@ -2,7 +2,7 @@ import numpy as np
 from numpy import ndarray # for typing only
 
 import operator
-from typing import List, Union, Set, Any, Tuple
+from typing import List, Union, Set, Any, Tuple, Callable
 from abc import abstractmethod
 
 
@@ -47,7 +47,7 @@ class DataNode(Node):
         # start backprop
         if partial is None:
             assert self.data.squeeze().ndim == 0, "backprop without partial gradient can be only started from scalars"
-            partial = 1.
+            partial = np.array(1.)
         self.grad += partial
         graph_nodes = [n for n in reversed(self.toposort()) if isinstance(n, FunctionNode)]
         for node in graph_nodes:
@@ -57,12 +57,16 @@ class DataNode(Node):
         if self.grad.shape == grad.shape:
             self.grad += grad
         else:
-            # bug if broadcast axis between non broadcast axes
-            #self.grad += grad.reshape(-1, *self.grad.shape).sum(axis=0)
-            shg = grad.shape
-            shs = [1]*(grad.ndim - self.grad.ndim) + list(self.grad.shape)
-            to_sum = tuple(np.argwhere(np.not_equal(shg, shs)).squeeze())
-            self.grad += grad.sum(axis=to_sum).squeeze()
+            # right align shapes
+            shape_in = grad.shape
+            lead = (1,) * (grad.ndim - self.grad.ndim)
+            shape_self = lead + self.grad.shape
+
+            # sum mismatched axis
+            shape_mismatches = np.argwhere(np.not_equal(shape_in, shape_self)).squeeze()
+            axs_to_sum = tuple(shape_mismatches) if shape_mismatches.ndim != 0 else shape_mismatches
+            grad = grad.sum(axis=axs_to_sum, keepdims=True)
+            self.grad += grad.squeeze(tuple(range(len(lead)))) # squeeze leading 1s
     
     @staticmethod
     def promote(data: "DataNode" | Any) -> "DataNode":
@@ -177,11 +181,15 @@ class DataNode(Node):
         reshape_node = Reshape()
         return reshape_node(self, new_shape)
     
-    def max(self, other: "DataNode" | Any) -> "DataNode":
+    def sum(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False):
+        sum_node = Sum()
+        return sum_node(self, axis, keepdims)
+    
+    def maximum(self, other: "DataNode" | Any) -> "DataNode":
         mask = self >= other
         return mask * self + ~mask * other
     
-    def min(self, other: "DataNode" | Any) -> "DataNode":
+    def minimum(self, other: "DataNode" | Any) -> "DataNode":
         mask = self <= other
         return mask * self + ~mask * other
         
@@ -217,7 +225,7 @@ class FunctionNode(Node):
 
         # result detached from computation graph
         if not self._is_differentiable or\
-        not any(i.requires_grad for i in input_data_nodes):
+            not any(i.requires_grad for i in input_data_nodes):
             new_data_node = DataNode(data, requires_grad=False)
             return new_data_node
         
@@ -316,7 +324,7 @@ class Slice(FunctionNode):
 
 class Compare(FunctionNode):
 
-    def __init__(self, compare_op) -> None:
+    def __init__(self, compare_op: Callable) -> None:
         super().__init__()
         self.op = compare_op
 
@@ -348,10 +356,16 @@ class Reshape(FunctionNode):
         (old_shape, ) = self.backprop_assets
         return (partial.reshape(old_shape), )
     
-class Reduce(FunctionNode):
-    # TODO
-    def _forward(self, *inputs: ndarray | Any) -> ndarray:
-        return super()._forward(*inputs)
+class Sum(FunctionNode):
     
-    def _backward(self, *partials: ndarray) -> Tuple[ndarray]:
-        return super()._backward(*partials)
+    def _forward(self, data: ndarray, axis: int| tuple | None, keepdims: bool) -> ndarray:
+        if axis is None:
+            axis = tuple(range(data.ndim))
+        self.save_for_backprop(axis, keepdims)
+        return np.sum(data, axis=axis, keepdims=keepdims)
+    
+    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
+        axis, keepdims = self.backprop_assets
+        if keepdims:
+            return (partial, )
+        return (np.expand_dims(partial, axis=axis), )
