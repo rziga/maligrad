@@ -38,6 +38,8 @@ class Node:
 
 class DataNode(Node):
 
+    __array_priority__ = 1337 # so numpy knows not to promote to ndarray
+
     def __init__(self, data: Union[ndarray, Any], requires_grad: bool = False) -> None:
         super().__init__([]) # [origin FunctionNode] - [] for natural init
         self.data = data if isinstance(data, ndarray) else np.array(data)
@@ -46,7 +48,8 @@ class DataNode(Node):
     def backward(self, partial: ndarray | None = None) -> None:
         # start backprop
         if partial is None:
-            assert self.data.squeeze().ndim == 0, "backprop without partial gradient can be only started from scalars"
+            assert self.data.squeeze().ndim == 0,\
+                "backprop without partial gradient can be only started from scalars"
             partial = np.array(1.)
         self.grad += partial
         graph_nodes = [n for n in reversed(self.toposort()) if isinstance(n, FunctionNode)]
@@ -81,6 +84,14 @@ class DataNode(Node):
     @property
     def shape(self) -> List[int]:
         return self.data.shape
+    
+    @property
+    def size(self) -> int:
+        return self.data.size
+    
+    @property
+    def ndim(self) -> int:
+        return self.data.ndim
     
     # OP OVERRIDES
 
@@ -181,6 +192,18 @@ class DataNode(Node):
         reshape_node = Reshape()
         return reshape_node(self, new_shape)
     
+    def transpose(self, axes: Union[List[int], Tuple[int]] | None = None) -> "DataNode":
+        transpose_node = Transpose()
+        return transpose_node(self, axes)
+    
+    # TODO: test
+    def swap_axes(self, to_swap: List[int, int] | Tuple[int, int]) -> "DataNode":
+        to_swap = list(to_swap)
+        axes = np.arange(self.size)
+        axes[to_swap] = axes[to_swap[::-1]]
+        transpose_node = Transpose()
+        return transpose_node(self, axes)
+        
     def sum(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False):
         sum_node = Sum()
         return sum_node(self, axis, keepdims)
@@ -369,3 +392,27 @@ class Sum(FunctionNode):
         if keepdims:
             return (partial, )
         return (np.expand_dims(partial, axis=axis), )
+
+class Transpose(FunctionNode):
+    # TODO: test
+    def _forward(self, data: ndarray, axes: List[int] | Tuple[int] | None) -> ndarray:
+        if axes is None:
+            axes = tuple(range(data.ndim))
+        self.save_for_backprop(np.argsort(axes))
+        return data.transpose(axes)
+    
+    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
+        (axes_inv, ) = self.backprop_assets
+        return (partial.transpose(axes_inv), )
+
+# other elementary functions
+# exp already possible with np.e **
+# add log, sin, cos, tan, tanh, etc.
+
+class Log(FunctionNode):
+    # TODO
+    def _forward(self, *inputs: ndarray | Any) -> ndarray:
+        return super()._forward(*inputs)
+    
+    def _backward(self, *partials: ndarray) -> Tuple[ndarray]:
+        return super()._backward(*partials)
