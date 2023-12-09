@@ -2,11 +2,13 @@ import numpy as np
 from numpy import ndarray # for typing only
 
 import operator
-from typing import List, Union, Set, Any, Tuple, Callable
-from abc import abstractmethod
+from typing import List, Union, Set, Any, Tuple
+from abc import ABC
+
+from .ops import *
 
 
-class Node:
+class Node(ABC):
 
     def __init__(self, children: List[Union["Node", None]] = []) -> None:
         self._children = children
@@ -38,7 +40,7 @@ class Node:
 
 class DataNode(Node):
 
-    __array_priority__ = 1337 # so numpy knows not to promote to ndarray
+    __array_priority__ = 1337 # so numpy knows not to promote to ndarray, 1337 just because I'm a leet hackerman
 
     def __init__(self, data: Union[ndarray, Any], requires_grad: bool = False) -> None:
         super().__init__([]) # [origin FunctionNode] - [] for natural init
@@ -96,14 +98,14 @@ class DataNode(Node):
     # OP OVERRIDES
 
     def __add__(self, other: "DataNode" | Any) -> "DataNode":
-        add_node = Add()
+        add_node = FunctionNode(Add())
         return add_node(self, other)
     
     def __radd__(self, other: "DataNode" | Any) -> "DataNode":
         return self + other
     
     def __mul__(self, other: "DataNode" | Any) -> "DataNode":
-        mul_node = Mul()
+        mul_node = FunctionNode(Mul())
         return mul_node(self, other)
     
     def __rmul__(self, other: "DataNode" | Any) -> "DataNode":
@@ -111,22 +113,22 @@ class DataNode(Node):
     
     def __matmul__(self, other: "DataNode" | Any) -> "DataNode":
         other = self.promote(other)
-        matmul_node = Matmul()
+        matmul_node = FunctionNode(Matmul())
         return matmul_node(self, other)
     
     def __rmatmul__(self, other: "DataNode" | Any) -> "DataNode":
         other = self.promote(other)
-        matmul_node = Matmul()
+        matmul_node = FunctionNode(Matmul())
         return matmul_node(other, self)
     
     def __pow__(self, other: "DataNode" | Any) -> "DataNode":
         other = self.promote(other)
-        pow_node = Pow()
+        pow_node = FunctionNode(Pow())
         return pow_node(self, other)
     
     def __rpow__(self, other: "DataNode" | Any) -> "DataNode":
         other = self.promote(other)
-        pow_node = Pow()
+        pow_node = FunctionNode(Pow())
         return pow_node(other, self)
     
     def __truediv__(self, other: "DataNode" | Any) -> "DataNode":
@@ -136,31 +138,31 @@ class DataNode(Node):
         return self ** -1 * other
     
     def __gt__(self, other: "DataNode" | Any) -> "DataNode":
-        compare_node = Compare(operator.gt)
+        compare_node = FunctionNode(Compare(operator.gt))
         return compare_node(self, other)
     
     def __ge__(self, other: "DataNode" | Any) -> "DataNode":
-        compare_node = Compare(operator.ge)
+        compare_node = FunctionNode(Compare(operator.ge))
         return compare_node(self, other)
     
     def __lt__(self, other: "DataNode" | Any) -> "DataNode":
-        compare_node = Compare(operator.lt)
+        compare_node = FunctionNode(Compare(operator.lt))
         return compare_node(self, other)
     
     def __le__(self, other: "DataNode" | Any) -> "DataNode":
-        compare_node = Compare(operator.le)
+        compare_node = FunctionNode(Compare(operator.le))
         return compare_node(self, other)
     
     def __eq__(self, other: "DataNode" | Any) -> "DataNode":
-        compare_node = Compare(operator.eq)
+        compare_node = FunctionNode(Compare(operator.eq))
         return compare_node(self, other)
     
     def __ne__(self, other: "DataNode" | Any) -> "DataNode":
-        compare_node = Compare(operator.ne)
+        compare_node = FunctionNode(Compare(operator.ne))
         return compare_node(self, other)
     
     def __getitem__(self, slices: Union[slice, List[slice]]) -> "DataNode":
-        slice_node = Slice()
+        slice_node = FunctionNode(Slice())
         return slice_node(self, slices)
     
     def __setitem__(self, slices: Union[slice, List[slice]]) -> "DataNode":
@@ -174,7 +176,7 @@ class DataNode(Node):
         return self
     
     def __invert__(self) -> "DataNode":
-        invert_node = Invert()
+        invert_node = FunctionNode(Invert())
         return invert_node(self)
     
     def __str__(self) -> str:
@@ -189,23 +191,23 @@ class DataNode(Node):
     # Useful ops from numpy
     
     def reshape(self, new_shape: Union[List[int], Tuple[int]]) -> "DataNode":
-        reshape_node = Reshape()
+        reshape_node = FunctionNode(Reshape())
         return reshape_node(self, new_shape)
     
     def transpose(self, axes: Union[List[int], Tuple[int]] | None = None) -> "DataNode":
-        transpose_node = Transpose()
+        transpose_node = FunctionNode(Transpose())
         return transpose_node(self, axes)
     
     # TODO: test
-    def swap_axes(self, to_swap: List[int, int] | Tuple[int, int]) -> "DataNode":
+    def swap_axes(self, to_swap: List[int] | Tuple[int]) -> "DataNode":
         to_swap = list(to_swap)
         axes = np.arange(self.size)
         axes[to_swap] = axes[to_swap[::-1]]
-        transpose_node = Transpose()
+        transpose_node = FunctionNode(Transpose())
         return transpose_node(self, axes)
         
     def sum(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False):
-        sum_node = Sum()
+        sum_node = FunctionNode(Sum())
         return sum_node(self, axis, keepdims)
     
     def maximum(self, other: "DataNode" | Any) -> "DataNode":
@@ -215,6 +217,10 @@ class DataNode(Node):
     def minimum(self, other: "DataNode" | Any) -> "DataNode":
         mask = self <= other
         return mask * self + ~mask * other
+    
+    def unsqueeze(self, axes: Union[List[int], Tuple[int]] | None = None) -> "DataNode":
+        # TODO
+        raise NotImplementedError
         
 
 ##########################
@@ -223,10 +229,12 @@ class DataNode(Node):
 
 class FunctionNode(Node):
 
-    def __init__(self) -> None:
+    def __init__(self, function: Function) -> None:
         super().__init__([]) # inputs to the Function
-        self.results = [] # results of applying Function on inputs
-        self.backprop_assets = [] # saved stuff for efficient backward in Function
+        self.fcn = function
+
+        self.results: List[DataNode] = [] # results of applying Function on inputs
+        self.backprop_assets: List[Any] = [] # saved context for efficient backward in Function
 
     def __call__(self, *inputs: DataNode | Any) -> DataNode:
         return self.forward(*inputs)
@@ -244,10 +252,10 @@ class FunctionNode(Node):
         forward_inputs = [
             i.data if isinstance(i, DataNode) else i
             for i in inputs]
-        data = self._forward(*forward_inputs)
+        data = self.fcn.forward(self, *forward_inputs)
 
         # result detached from computation graph
-        if not self._is_differentiable or\
+        if not self.fcn.is_differentiable or\
             not any(i.requires_grad for i in input_data_nodes):
             new_data_node = DataNode(data, requires_grad=False)
             return new_data_node
@@ -261,158 +269,15 @@ class FunctionNode(Node):
         return new_data_node
     
     def backward(self):
-        if not self._is_differentiable:
+        if not self.fcn.is_differentiable:
             raise ValueError("backward cannot be used on non-differentiable FunctionNode")
-        grads = self._backward(*[t.grad for t in self.results])
+        grads = self.fcn.backward(self, *[t.grad for t in self.results])
         for c, grad in zip(self.children, grads):
             if c.requires_grad:
                 c.accumulate_grad(grad)
-
-    @abstractmethod
-    def _forward(self, *inputs: ndarray | Any) -> ndarray:
-        raise NotImplementedError
-    
-    def _backward(self, *partials: ndarray) -> Tuple[ndarray]:
-        raise NotImplementedError
-
-    @property
-    def _is_differentiable(self) -> bool:
-        # set to false to disable gradient tracking
-        # must not use backward_if thats the case
-        return True
     
     def attach_results(self, *results: DataNode) -> None:
         self.results += results
 
     def save_for_backprop(self, *to_save: Any) -> None:
         self.backprop_assets += to_save
-
-
-##########################
-# Function Definitions
-##########################
-
-# OP OVERRIDES
-
-class Add(FunctionNode):
-
-    def _forward(self, a: ndarray, b: ndarray) -> ndarray:
-        return a + b
-    
-    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
-        return partial, partial
-    
-class Mul(FunctionNode):
-
-    def _forward(self, a: ndarray, b: ndarray) -> ndarray:
-        self.save_for_backprop(a, b)
-        return a * b
-    
-    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
-        a, b = self.backprop_assets
-        return b * partial, a * partial
-
-class Pow(FunctionNode):
-
-    def _forward(self, base: ndarray, exp: ndarray) -> ndarray:
-        self.save_for_backprop(base, exp)
-        return base ** exp
-    
-    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
-        base, exp = self.backprop_assets
-        return exp * base ** (exp - 1) * partial, base ** exp * np.log(base) * partial
-
-class Matmul(FunctionNode):
-
-    def _forward(self, a: ndarray, b: ndarray) -> ndarray:
-        self.save_for_backprop(a, b)
-        return a @ b
-    
-    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
-        a, b = self.backprop_assets
-        print(a.shape, b.shape, partial.shape)
-        return partial @ b.swapaxes(-2, -1), a.swapaxes(-2, -1) @ partial
-    
-class Slice(FunctionNode):
-
-    def _forward(self, data: ndarray, slices: Any) -> ndarray:
-        self.save_for_backprop(slices, data.shape)
-        return data[slices]
-    
-    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
-        slices, original_shape = self.backprop_assets
-        template = np.zeros(original_shape)
-        template[slices] += partial
-        return (template, )
-
-class Compare(FunctionNode):
-
-    def __init__(self, compare_op: Callable) -> None:
-        super().__init__()
-        self.op = compare_op
-
-    def _forward(self, a: ndarray, b: ndarray | Any) -> ndarray:
-        return self.op(a, b)
-    
-    @property
-    def _is_differentiable(self) -> bool:
-        return False
-    
-class Invert(FunctionNode):
-
-    def _forward(self, a: ndarray) -> ndarray:
-        return ~a
-    
-    @property
-    def _is_differentiable(self) -> bool:
-        return False
-    
-# Useful numpy functions
-
-class Reshape(FunctionNode):
-
-    def _forward(self, data: ndarray, new_shape: Tuple[int]) -> ndarray:
-        self.save_for_backprop(data.shape)
-        return data.reshape(new_shape)
-    
-    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
-        (old_shape, ) = self.backprop_assets
-        return (partial.reshape(old_shape), )
-    
-class Sum(FunctionNode):
-    
-    def _forward(self, data: ndarray, axis: int| tuple | None, keepdims: bool) -> ndarray:
-        if axis is None:
-            axis = tuple(range(data.ndim))
-        self.save_for_backprop(axis, keepdims)
-        return np.sum(data, axis=axis, keepdims=keepdims)
-    
-    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
-        axis, keepdims = self.backprop_assets
-        if keepdims:
-            return (partial, )
-        return (np.expand_dims(partial, axis=axis), )
-
-class Transpose(FunctionNode):
-    # TODO: test
-    def _forward(self, data: ndarray, axes: List[int] | Tuple[int] | None) -> ndarray:
-        if axes is None:
-            axes = tuple(range(data.ndim))
-        self.save_for_backprop(np.argsort(axes))
-        return data.transpose(axes)
-    
-    def _backward(self, partial: ndarray) -> Tuple[ndarray]:
-        (axes_inv, ) = self.backprop_assets
-        return (partial.transpose(axes_inv), )
-
-# other elementary functions
-# exp already possible with np.e **
-# add log, sin, cos, tan, tanh, etc.
-
-class Log(FunctionNode):
-    # TODO
-    def _forward(self, *inputs: ndarray | Any) -> ndarray:
-        return super()._forward(*inputs)
-    
-    def _backward(self, *partials: ndarray) -> Tuple[ndarray]:
-        return super()._backward(*partials)
