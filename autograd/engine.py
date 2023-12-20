@@ -10,8 +10,8 @@ from .ops import *
 
 class Node(ABC):
 
-    def __init__(self, children: List[Union["Node", None]] = []) -> None:
-        self._children = children
+    def __init__(self, children: List["Node"] | None = None) -> None:
+        self._children = children if children is not None else []
 
     @property
     def children(self) -> List["Node"]:
@@ -43,7 +43,7 @@ class DataNode(Node):
     __array_priority__ = 1337 # so numpy knows not to promote to ndarray, 1337 just because I'm a leet hackerman
 
     def __init__(self, data: Union[ndarray, Any], requires_grad: bool = False) -> None:
-        super().__init__([]) # [origin FunctionNode] - [] for natural init
+        super().__init__() # [origin FunctionNode] - [] for natural init
         self.data = data if isinstance(data, ndarray) else np.array(data)
         self.grad = np.zeros_like(self.data) if requires_grad else None
 
@@ -163,6 +163,7 @@ class DataNode(Node):
     
     def __getitem__(self, slices: Union[slice, List[slice]]) -> "DataNode":
         slice_node = FunctionNode(Slice())
+        print(slices)
         return slice_node(self, slices)
     
     def __setitem__(self, slices: Union[slice, List[slice]]) -> "DataNode":
@@ -190,7 +191,7 @@ class DataNode(Node):
     
     # Useful ops from numpy
     
-    def reshape(self, new_shape: Union[List[int], Tuple[int]]) -> "DataNode":
+    def reshape(self, *new_shape: Union[List[int], Tuple[int]]) -> "DataNode":
         reshape_node = FunctionNode(Reshape())
         return reshape_node(self, new_shape)
     
@@ -198,10 +199,9 @@ class DataNode(Node):
         transpose_node = FunctionNode(Transpose())
         return transpose_node(self, axes)
     
-    # TODO: test
-    def swap_axes(self, to_swap: List[int] | Tuple[int]) -> "DataNode":
-        to_swap = list(to_swap)
-        axes = np.arange(self.size)
+    def swap_axes(self, axis1: int, axis2: int) -> "DataNode":
+        to_swap = [axis1, axis2]
+        axes = np.arange(self.ndim)
         axes[to_swap] = axes[to_swap[::-1]]
         transpose_node = FunctionNode(Transpose())
         return transpose_node(self, axes)
@@ -218,7 +218,11 @@ class DataNode(Node):
         mask = self <= other
         return mask * self + ~mask * other
     
-    def unsqueeze(self, axes: Union[List[int], Tuple[int]] | None = None) -> "DataNode":
+    def squeeze(self, axes: Union[int, List[int], Tuple[int]] | None = None) -> "DataNode":
+        # TODO
+        pass
+
+    def unsqueeze(self, axes: Union[int, List[int], Tuple[int]] | None = None) -> "DataNode":
         # TODO
         raise NotImplementedError
         
@@ -230,7 +234,7 @@ class DataNode(Node):
 class FunctionNode(Node):
 
     def __init__(self, function: Function) -> None:
-        super().__init__([]) # inputs to the Function
+        super().__init__() # inputs to the Function
         self.fcn = function
 
         self.results: List[DataNode] = [] # results of applying Function on inputs

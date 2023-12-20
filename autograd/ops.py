@@ -119,7 +119,7 @@ class Sum(Function):
         return (np.expand_dims(partial, axis=axis), )
 
 class Transpose(Function):
-    # TODO: test
+    
     def forward(self, ctx, data: ndarray, axes: List[int] | Tuple[int] | None) -> ndarray:
         if axes is None:
             axes = tuple(range(data.ndim))
