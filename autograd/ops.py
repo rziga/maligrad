@@ -12,10 +12,10 @@ class Function(ABC):
         return True
 
     @abstractmethod
-    def forward(self, ctx: "FunctionNode", *inputs: Tuple[ndarray | Any]) -> Tuple[ndarray]:
+    def forward(self, ctx, *inputs: Tuple[ndarray | Any]) -> Tuple[ndarray]:
         raise NotImplementedError
 
-    def backward(self, ctx: "FunctionNode", *partials: Tuple[ndarray]) -> Tuple[ndarray]:
+    def backward(self, ctx, *partials: Tuple[ndarray]) -> Tuple[ndarray]:
         raise NotImplementedError
 
 

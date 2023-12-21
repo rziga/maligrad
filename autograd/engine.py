@@ -48,10 +48,12 @@ class DataNode(Node):
         self.grad = np.zeros_like(self.data) if requires_grad else None
 
     def backward(self, partial: ndarray | None = None) -> None:
+        assert self.grad is not None,\
+            "Cannot backpropagate from DataNode with disabled gradient tracking."
         # start backprop
         if partial is None:
             assert self.data.squeeze().ndim == 0,\
-                "backprop without partial gradient can be only started from scalars"
+                "Backprop without seed partial gradient can be only started from scalars."
             partial = np.array(1.)
         self.grad += partial
         graph_nodes = [n for n in reversed(self.toposort()) if isinstance(n, FunctionNode)]
