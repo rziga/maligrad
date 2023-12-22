@@ -122,7 +122,7 @@ class Transpose(Function):
     
     def forward(self, ctx, data: ndarray, axes: List[int] | Tuple[int] | None) -> ndarray:
         if axes is None:
-            axes = tuple(range(data.ndim))
+            axes = tuple(range(data.ndim))[::-1]
         ctx.save_for_backprop(np.argsort(axes))
         return data.transpose(axes)
     
