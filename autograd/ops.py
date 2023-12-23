@@ -67,7 +67,8 @@ class Slice(Function):
     def backward(self, ctx, partial: ndarray) -> Tuple[ndarray]:
         slices, original_shape = ctx.backprop_assets
         template = np.zeros(original_shape)
-        template[slices] += partial
+        #template[slices] += partial # TODO here you need np.add.at when array indexing!
+        np.add.at(template, slices, partial)
         return (template, )
 
 class Compare(Function):
@@ -133,11 +134,3 @@ class Transpose(Function):
 # other elementary functions
 # exp already possible with np.e **
 # add log, sin, cos, tan, tanh, etc.
-
-class Log(Function):
-    # TODO
-    def forward(self, ctx, *inputs: ndarray | Any) -> ndarray:
-        return super().forward(*inputs)
-    
-    def backward(self, ctx, *partials: ndarray) -> Tuple[ndarray]:
-        return super().backward(*partials)

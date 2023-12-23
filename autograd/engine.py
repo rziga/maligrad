@@ -169,7 +169,7 @@ class DataNode(Node):
         return slice_node(self, slices)
     
     def __setitem__(self, slices: Union[slice, List[slice]]) -> "DataNode":
-        # TODO
+        # TODO in the far far future
         raise NotImplementedError("assignment currently not supported") 
     
     def __neg__(self) -> "DataNode":
@@ -221,12 +221,12 @@ class DataNode(Node):
         return mask * self + ~mask * other
     
     def squeeze(self, axes: Union[int, List[int], Tuple[int]] | None = None) -> "DataNode":
-        # TODO
-        pass
+        new_shape = np.squeeze(self.data, axes).shape
+        return self.reshape(new_shape)
 
     def unsqueeze(self, axes: Union[int, List[int], Tuple[int]] | None = None) -> "DataNode":
-        # TODO
-        raise NotImplementedError
+        new_shape = np.expand_dims(self.data, axes).shape # this is kinda funny
+        return self.reshape(new_shape)
         
 
 ##########################

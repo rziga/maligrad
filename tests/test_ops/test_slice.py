@@ -110,6 +110,23 @@ def test_array_indexing():
     tester.test_backward()
     tester.test_forward()
 
+def test_array_indexing_overlap():
+    tester = OpTester(
+        fcn=Slice(),
+        inputs=[
+            DataNode(np.arange(3.), True),
+            ([0, 1, 1])
+            ], 
+        expected_output=np.array([0, 1, 1]),
+        backward_seed=np.ones(3),
+        expected_grads=[
+            np.array([1, 2, 0]), 
+            None,
+            ]
+        )
+    tester.test_backward()
+    tester.test_forward()
+
 if __name__ == "__main__":
     test_single()
     test_slice()
