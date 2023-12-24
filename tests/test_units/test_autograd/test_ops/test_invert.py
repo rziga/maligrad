@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
-from autograd.ops import Invert
-from autograd.engine import DataNode
+from milligrad.autograd.ops import Invert
+from milligrad.autograd.engine import DataNode
 
-from tests.test_ops.base import OpTester
+from .base import OpTester
+
 
 def test_basic():
     tester = OpTester(

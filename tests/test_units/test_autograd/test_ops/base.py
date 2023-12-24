@@ -4,8 +4,8 @@ from dataclasses import dataclass
 import numpy as np
 from numpy import ndarray
 
-from autograd.ops import Function
-from autograd.engine import FunctionNode, DataNode
+from milligrad.autograd.ops import Function
+from milligrad.autograd.engine import FunctionNode, DataNode
 
 
 @dataclass

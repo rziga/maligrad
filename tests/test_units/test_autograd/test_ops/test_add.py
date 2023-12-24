@@ -1,9 +1,9 @@
 import numpy as np
 
-from autograd.ops import Add
-from autograd.engine import DataNode
+from milligrad.autograd.ops import Add
+from milligrad.autograd.engine import DataNode
 
-from tests.test_ops.base import OpTester
+from .base import OpTester
 
 
 def test_basic():

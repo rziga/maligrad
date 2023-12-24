@@ -2,10 +2,11 @@ import operator
 import numpy as np
 import pytest
 
-from autograd.ops import Compare
-from autograd.engine import DataNode
+from milligrad.autograd.ops import Compare
+from milligrad.autograd.engine import DataNode
 
-from tests.test_ops.base import OpTester
+from .base import OpTester
+
 
 def test_basic():
     tester = OpTester(

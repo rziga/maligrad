@@ -165,7 +165,6 @@ class DataNode(Node):
     
     def __getitem__(self, slices: Union[slice, List[slice]]) -> "DataNode":
         slice_node = FunctionNode(Slice())
-        print(slices)
         return slice_node(self, slices)
     
     def __setitem__(self, slices: Union[slice, List[slice]]) -> "DataNode":
