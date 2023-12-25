@@ -2,7 +2,7 @@ import numpy as np
 from numpy import ndarray # for typing only
 
 import operator
-from typing import List, Union, Set, Any, Tuple
+from typing import List, Union, Any, Tuple
 from abc import ABC
 
 from .ops import *
@@ -24,12 +24,13 @@ class Node(ABC):
     def is_leaf(self) -> bool:
         return bool(self._children)
     
-    def toposort(self, visited: Set = set()) -> List["Node"]:
+    def toposort(self, visited: set | None = None) -> List["Node"]:
+        if visited is None: visited = set()
         out = []
         if self not in visited:
             visited.add(self)
             for child in self.children:
-                out += child.toposort()
+                out += child.toposort(visited)
             out.append(self)
         return out
     
@@ -112,6 +113,15 @@ class DataNode(Node):
     
     def __rmul__(self, other: "DataNode" | Any) -> "DataNode":
         return self * other
+    
+    def __neg__(self) -> "DataNode":
+        return (-1) * self
+
+    def __sub__(self, other: "DataNode" | Any) -> "DataNode":
+        return -other + self
+    
+    def __rsub__(self, other: "DataNode" | Any) -> "DataNode":
+        return -self + other
     
     def __matmul__(self, other: "DataNode" | Any) -> "DataNode":
         other = self.promote(other)

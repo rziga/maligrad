@@ -1,7 +1,7 @@
 import numpy as np
 
-from milligrad.autograd.ops import Matmul
-from milligrad.autograd.engine import DataNode
+from maligrad.autograd.ops import Matmul
+from maligrad.autograd.engine import DataNode
 
 from .base import OpTester
 

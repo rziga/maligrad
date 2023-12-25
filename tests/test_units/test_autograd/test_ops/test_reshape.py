@@ -1,7 +1,7 @@
 import numpy as np
 
-from milligrad.autograd.ops import Reshape
-from milligrad.autograd.engine import DataNode
+from maligrad.autograd.ops import Reshape
+from maligrad.autograd.engine import DataNode
 
 from .base import OpTester
 

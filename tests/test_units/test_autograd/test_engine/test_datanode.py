@@ -1,6 +1,6 @@
 import numpy as np
 
-from milligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import DataNode
 
 
 def test_basic():

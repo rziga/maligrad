@@ -1,7 +1,7 @@
 import numpy as np
 
-from milligrad.autograd.ops import Slice
-from milligrad.autograd.engine import DataNode
+from maligrad.autograd.ops import Slice
+from maligrad.autograd.engine import DataNode
 
 from .base import OpTester
 

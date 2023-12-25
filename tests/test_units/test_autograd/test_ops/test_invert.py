@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from milligrad.autograd.ops import Invert
-from milligrad.autograd.engine import DataNode
+from maligrad.autograd.ops import Invert
+from maligrad.autograd.engine import DataNode
 
 from .base import OpTester
 
