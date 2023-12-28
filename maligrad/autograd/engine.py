@@ -220,6 +220,9 @@ class DataNode(Node):
     def sum(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False):
         sum_node = FunctionNode(Sum())
         return sum_node(self, axis, keepdims)
+
+    def mean(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False):
+        return self.sum(axis, keepdims) / self.shape(axis)
     
     def maximum(self, other: "DataNode" | Any) -> "DataNode":
         mask = self >= other
