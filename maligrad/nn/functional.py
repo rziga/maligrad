@@ -19,3 +19,10 @@ def exp(x: DataNode) -> DataNode:
 
 def relu(x: DataNode) -> DataNode:
     return x.maximum(0)
+
+def sigmoid(x: DataNode) -> DataNode:
+    return 1 / (1 + exp(-x))
+
+def softmax(x: DataNode, axis: int = -1) -> DataNode:
+    expx = exp(x)
+    return expx / expx.sum(axis, keepdims=True)

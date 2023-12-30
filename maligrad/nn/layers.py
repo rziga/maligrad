@@ -1,8 +1,9 @@
+from typing import Any
 import numpy as np
 
 from maligrad.autograd.engine import DataNode
-from .engine import Module, Parameter
-
+from maligrad.nn.engine import Module, Parameter
+import maligrad.nn.functional as F
 
 class Linear(Module):
 
@@ -13,3 +14,18 @@ class Linear(Module):
 
     def forward(self, x: DataNode) -> DataNode:
         return x @ self.W + self.b
+
+class ReLU(Module):
+
+    def forward(self, x: DataNode) -> DataNode:
+        return F.relu(x)
+    
+class Sigmoid(Module):
+
+    def forward(self, x: DataNode) -> DataNode:
+        return F.sigmoid(x)
+
+class Softmax(Module):
+
+    def forward(self, x: DataNode, axis: int = -1) -> DataNode:
+        return F.softmax(x, axis)
