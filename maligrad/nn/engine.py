@@ -2,7 +2,7 @@ from typing import Any, List, Iterable
 from abc import ABC, abstractmethod
 from numpy import ndarray
 
-from ..autograd.engine import DataNode
+from maligrad.autograd.engine import DataNode
 
 
 def search_parameters(item: Any) -> List["Parameter"]:
@@ -46,3 +46,16 @@ class Module(ABC):
 
     def submodules(self) -> List["Module"]:
         return search_submodules(self)
+    
+
+class Sequential(Module):
+
+    def __init__(self, modules: List[Module]):
+        super().__init__()
+        self.modules = modules
+
+    def forward(self, *inputs: DataNode | Any) -> DataNode:
+        out = inputs
+        for module in self.modules:
+            out = module(out)
+        return out
