@@ -5,7 +5,7 @@ import operator
 from typing import List, Union, Any, Tuple
 from abc import ABC
 
-from .ops import *
+from maligrad.autograd.ops import *
 
 
 class Node(ABC):
@@ -53,7 +53,7 @@ class DataNode(Node):
             "Cannot backpropagate from DataNode with disabled gradient tracking."
         # start backprop
         if partial is None:
-            assert self.data.squeeze().ndim == 0,\
+            assert self.size == 1,\
                 "Backprop without seed partial gradient can be only started from scalars."
             partial = np.array(1.)
         self.grad += partial
@@ -204,7 +204,7 @@ class DataNode(Node):
     
     def reshape(self, *new_shape: Union[List[int], Tuple[int]]) -> "DataNode":
         reshape_node = FunctionNode(Reshape())
-        return reshape_node(self, new_shape)
+        return reshape_node(self, *new_shape)
     
     def transpose(self, axes: Union[List[int], Tuple[int]] | None = None) -> "DataNode":
         transpose_node = FunctionNode(Transpose())
@@ -241,9 +241,11 @@ class DataNode(Node):
         return self.reshape(new_shape)
         
 
-##########################
-# FunctionNode
-##########################
+###################################
+# FunctionNode - like ctx in torch?
+# (haven't looked at enough 
+# pytorch source to know properly)
+###################################
 
 class FunctionNode(Node):
 
