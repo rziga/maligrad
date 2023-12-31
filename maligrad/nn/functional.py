@@ -1,9 +1,17 @@
 import numpy as np
 from ..autograd.engine import DataNode
 
+# I want the functions here to be independent of batch dims
+# e.g. I want conv to work with img with shape [..., b2, b1, c, h, w]
+# and ker with shape [c, d, h, w] if 3d or [c, h, w] if 2d or [c, w] if 1d
+# explicit python loops are forbidden :)
 
 def conv(img: DataNode, ker: DataNode, stride: int | tuple, dilation: int | tuple) -> DataNode:
-    assert img.ndim == ker.ndim
+    assert img.ndim >= ker.ndim,\
+        "Cannot convolve image with kernel of higher dimension than itself."
+    if img.ndim > ker.ndim: # saves an op when dims match
+        ker = ker.unsqueeze(tuple(range(img.ndim - ker.ndim)))
+
     at_end = tuple(range(-ker.ndim, 0)) # -ndim, , ..., -2, -1
     at_one = tuple(range(1, ker.ndim+1)) # 1, 2, ..., ndim
 
@@ -26,3 +34,7 @@ def sigmoid(x: DataNode) -> DataNode:
 def softmax(x: DataNode, axis: int = -1) -> DataNode:
     expx = exp(x)
     return expx / expx.sum(axis, keepdims=True)
+
+def categorical_crossentropy(y: DataNode, target: DataNode):
+    # TODO make this batch independent
+    return y[range(target.shape[-1]), target]
