@@ -6,7 +6,7 @@ from ..autograd.engine import DataNode
 # and ker with shape [c, d, h, w] if 3d or [c, h, w] if 2d or [c, w] if 1d
 # explicit python loops are forbidden :)
 
-def conv(img: DataNode, ker: DataNode, stride: int | tuple, dilation: int | tuple) -> DataNode:
+def _conv(img: DataNode, ker: DataNode, stride: int | tuple, dilation: int | tuple) -> DataNode:
     assert img.ndim >= ker.ndim,\
         "Cannot convolve image with kernel of higher dimension than itself."
     if img.ndim > ker.ndim: # saves an op when dims match
@@ -21,6 +21,37 @@ def conv(img: DataNode, ker: DataNode, stride: int | tuple, dilation: int | tupl
     indices = np.expand_dims(seed_indices, at_one) + np.expand_dims(offsets, at_end)
 
     return (img[tuple(indices)] * ker).sum(at_end)
+
+def _conv_indices(img_shape, ker_shape, stride, dilation):
+    assert len(img_shape) == (ndim := len(ker_shape))
+    at_end = tuple(range(-ndim, 0)) # -ndim, , ..., -2, -1
+    at_one = tuple(range(-2*ndim, -ndim)) # 1, 2, ..., ndim
+
+    # indices of first possible kernel -> [ndim, *ker.shape]
+    seed_indices = np.indices(ker_shape) * np.expand_dims(dilation, at_end)
+
+    # number of steps in each dimension -> [ndim]
+    n_steps = (img_shape - dilation * (np.array(ker_shape) - 1) - 1) // stride + 1
+
+    # offsets for the first element in seed indices for all dimesnions 
+    #  -> [ndim, *n_steps] or differently, [ndim, *out_shape]
+    offsets = np.indices(n_steps) * np.expand_dims(stride, at_end)
+
+    # all indices = seed indices offsetted by all offsets -> [ndim, *n_steps, *ker.shape]
+    indices = np.expand_dims(seed_indices, at_one) + np.expand_dims(offsets, at_end)
+
+    return tuple(indices) # [ndim, *out_shape, *ker_shape]
+
+def conv(img: DataNode, ker: DataNode, stride: int | tuple, dilation: int | tuple, ker_batch_dims: int = 0) -> DataNode:
+    # first ker_batch_dims in kernel are batch dimension
+    dim_diff = img.ndim - (ker.ndim - ker_batch_dims)
+    if dim_diff > 0:
+        # expand so the non batch dimensions match
+        ker = ker.unsqueeze(tuple(range(ker_batch_dims, ker_batch_dims+dim_diff)))
+
+    ind = _conv_indices(img.shape, ker.shape[ker_batch_dims:], stride, dilation)
+    batch_ker = ker.unsqueeze(tuple(range(ker_batch_dims, ker_batch_dims + img.ndim)))
+    return (img[ind] * batch_ker).sum(tuple(range(-ker.ndim+ker_batch_dims, 0)))
 
 def exp(x: DataNode) -> DataNode:
     return np.e ** x
