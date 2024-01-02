@@ -6,22 +6,6 @@ from ..autograd.engine import DataNode
 # and ker with shape [c, d, h, w] if 3d or [c, h, w] if 2d or [c, w] if 1d
 # explicit python loops are forbidden :)
 
-def _conv(img: DataNode, ker: DataNode, stride: int | tuple, dilation: int | tuple) -> DataNode:
-    assert img.ndim >= ker.ndim,\
-        "Cannot convolve image with kernel of higher dimension than itself."
-    if img.ndim > ker.ndim: # saves an op when dims match
-        ker = ker.unsqueeze(tuple(range(img.ndim - ker.ndim)))
-
-    at_end = tuple(range(-ker.ndim, 0)) # -ndim, , ..., -2, -1
-    at_one = tuple(range(1, ker.ndim+1)) # 1, 2, ..., ndim
-
-    seed_indices = np.indices(ker.shape) * np.expand_dims(dilation, at_end)
-    n_steps = (img.shape - dilation * (np.array(ker.shape) - 1) - 1) // stride + 1
-    offsets = np.indices(n_steps) * np.expand_dims(stride, at_end)
-    indices = np.expand_dims(seed_indices, at_one) + np.expand_dims(offsets, at_end)
-
-    return (img[tuple(indices)] * ker).sum(at_end)
-
 def _conv_indices(img_shape, ker_shape, stride, dilation):
     assert len(img_shape) == (ndim := len(ker_shape))
     at_end = tuple(range(-ndim, 0)) # -ndim, , ..., -2, -1
@@ -43,6 +27,10 @@ def _conv_indices(img_shape, ker_shape, stride, dilation):
     return tuple(indices) # [ndim, *out_shape, *ker_shape]
 
 def conv(img: DataNode, ker: DataNode, stride: int | tuple, dilation: int | tuple, ker_batch_dims: int = 0) -> DataNode:
+    # TODO: switch ker_batch shape and image batch shape position in output
+    # TODO: instead of fixing batch_dims, its better to fix dim of conv directly
+    # do this by unsqueezing img[ind] instead of kernel :) 
+    # output: [*ker_batch_shape, *img_batch_shape, *conv_shape]
     # first ker_batch_dims in kernel are batch dimension
     dim_diff = img.ndim - (ker.ndim - ker_batch_dims)
     if dim_diff > 0:
