@@ -45,7 +45,8 @@ class Pow(Function):
     
     def backward(self, ctx, partial: ndarray) -> Tuple[ndarray]:
         base, exp = ctx.backprop_assets
-        return exp * base ** (exp - 1) * partial, base ** exp * np.log(base) * partial
+        return exp * base ** (exp - 1) * partial,\
+            base ** exp * np.log(base) * partial # TODO: fix warning when log <= 0
 
 class Matmul(Function):
 
@@ -97,9 +98,9 @@ class Invert(Function):
 
 class Reshape(Function):
 
-    def forward(self, ctx, data: ndarray, new_shape: Tuple[int]) -> ndarray:
+    def forward(self, ctx, data: ndarray, *new_shape: Tuple[int]) -> ndarray:
         ctx.save_for_backprop(data.shape)
-        return data.reshape(new_shape)
+        return data.reshape(*new_shape)
     
     def backward(self, ctx, partial: ndarray) -> Tuple[ndarray]:
         (old_shape, ) = ctx.backprop_assets

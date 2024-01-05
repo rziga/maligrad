@@ -26,20 +26,22 @@ def _conv_indices(img_shape, ker_shape, stride, dilation):
 
     return tuple(indices) # [ndim, *out_shape, *ker_shape]
 
-def conv(img: DataNode, ker: DataNode, stride: int | tuple, dilation: int | tuple, ker_batch_dims: int = 0) -> DataNode:
-    # TODO: switch ker_batch shape and image batch shape position in output
-    # TODO: instead of fixing batch_dims, its better to fix dim of conv directly
-    # do this by unsqueezing img[ind] instead of kernel :) 
-    # output: [*ker_batch_shape, *img_batch_shape, *conv_shape]
-    # first ker_batch_dims in kernel are batch dimension
-    dim_diff = img.ndim - (ker.ndim - ker_batch_dims)
-    if dim_diff > 0:
-        # expand so the non batch dimensions match
-        ker = ker.unsqueeze(tuple(range(ker_batch_dims, ker_batch_dims+dim_diff)))
+def conv(img: DataNode, ker: DataNode, dim: int, stride: int | tuple = 1, dilation: int | tuple = 1) -> DataNode:
+    assert img.ndim >= dim and ker.ndim >= dim
+    img = DataNode.promote(img)
+    img_bdim, ker_bdim = img.ndim-dim, ker.ndim-dim
 
-    ind = _conv_indices(img.shape, ker.shape[ker_batch_dims:], stride, dilation)
-    batch_ker = ker.unsqueeze(tuple(range(ker_batch_dims, ker_batch_dims + img.ndim)))
-    return (img[ind] * batch_ker).sum(tuple(range(-ker.ndim+ker_batch_dims, 0)))
+    ker = ker.unsqueeze(tuple(range(ker_bdim, ker_bdim+img.ndim)))
+    inds = _conv_indices(img.shape, ker.shape[-img.ndim:], stride, dilation)
+    windows = img[inds].unsqueeze(tuple(range(img_bdim, img_bdim+ker_bdim)))
+    
+    return (windows * ker).sum(tuple(range(-img.ndim, 0)))
+
+def maxpool(img: DataNode, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> DataNode:
+    pass
+
+def avgpool(img: DataNode, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> DataNode:
+    pass
 
 def exp(x: DataNode) -> DataNode:
     return np.e ** x

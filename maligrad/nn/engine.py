@@ -34,6 +34,9 @@ class Parameter(DataNode):
 
 class Module(ABC):
 
+    def __init__(self) -> None:
+        pass
+
     def __call__(self, *inputs: DataNode | Any) -> DataNode:
         return self.forward(*inputs)
 
