@@ -24,15 +24,15 @@
      inkscape:document-units="mm"
      showgrid="false"
      width="300mm"
-     inkscape:zoom="0.52347032"
-     inkscape:cx="667.65963"
-     inkscape:cy="185.30181"
+     inkscape:zoom="1.0469406"
+     inkscape:cx="402.60162"
+     inkscape:cy="78.323447"
      inkscape:window-width="1920"
      inkscape:window-height="1017"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g845" />
+     inkscape:current-layer="layer1" />
   <defs
      id="defs2">
     <rect
@@ -101,10 +101,10 @@
            inkscape:label="hair"
            style="display:inline">
           <path
-             style="fill:#ffcc00;stroke:#000000;stroke-width:5;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-             d="m 136.24564,37.950839 c 6.35619,7.794013 -2.06756,15.74161 10.06973,20.344989 15.40119,5.841296 5.77226,30.447413 -2.70752,45.174442 44.95157,-18.170047 33.18411,-69.733886 6.83873,-73.694493 C 124.1012,25.81517 116.59351,36.8304 116.59351,36.8304 Z"
+             style="fill:#ffcc00;stroke:#000000;stroke-width:4.99911;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+             d="m 167.71257,85.654776 c 3.06632,-14.363566 12.56266,-41.259686 -9.87741,-53.444621 -6.50625,-3.296812 -14.07357,-3.327215 -21.20604,-3.212003 -7.17611,0.469056 -15.09506,2.180524 -20.03561,7.832248 l 19.65213,1.120439 c 3.7437,4.022165 2.14423,9.736109 3.40637,14.554332 1.33895,4.490004 6.43508,5.232042 9.82718,7.489646 5.89229,4.404017 5.54306,12.755064 4.11447,19.203706 -1.92348,8.577574 -5.72392,11.662007 -6.70124,17.965366 -0.97732,6.303361 1.42749,11.226361 6.21072,14.778651 4.78323,3.55228 12.66462,6.95616 18.8413,2.43443 6.17668,-4.52173 8.34079,-7.29771 7.69161,-15.840852 -0.64918,-8.543144 -14.06305,-14.428995 -18.7362,-8.446759 -4.67315,5.982236 -1.86587,15.106821 5.70336,10.435511"
              id="path20898"
-             sodipodi:nodetypes="csczcc" />
+             sodipodi:nodetypes="cccscccczzzzzc" />
           <circle
              style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:3.7495;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
              id="path25419"
