@@ -5,6 +5,7 @@ from maligrad.autograd.engine import DataNode
 from maligrad.nn.engine import Module, Parameter
 import maligrad.nn.functional as F
 
+
 class Linear(Module):
 
     def __init__(self, in_features: int,

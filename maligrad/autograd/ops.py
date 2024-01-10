@@ -119,6 +119,22 @@ class Sum(Function):
         if keepdims:
             return (partial, )
         return (np.expand_dims(partial, axis=axis), )
+    
+class Max(Function):
+
+    def forward(self, ctx, data: ndarray, axis: int | tuple | None, keepdims: bool) -> Tuple[ndarray]:
+        if axis is None:
+            axis = tuple(range(data.ndim))
+        max_ =  data.max(axis=axis, keepdims=keepdims)
+        idxs = data == data.max(axis=axis, keepdims=True)
+        ctx.save_for_backprop(idxs, data.shape, data.dtype)
+        return max_
+    
+    def backward(self, ctx, partial: ndarray) -> Tuple[ndarray]:
+        idxs, original_shape, original_dtype = ctx.backprop_assets
+        template = np.zeros(original_shape, original_dtype)
+        template[idxs] += partial.flatten()
+        return (template, )
 
 class Transpose(Function):
     
