@@ -38,10 +38,18 @@ def conv(img: DataNode, ker: DataNode, dim: int, stride: int | tuple = 1, dilati
     return (windows * ker).sum(tuple(range(-img.ndim, 0)))
 
 def maxpool(img: DataNode, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> DataNode:
-    pass
+    assert (dim_diff := img.ndim - len(ker_shape)) >= 0
+    ker_shape = dim_diff * (1, ) + ker_shape
+    inds = _conv_indices(img.shape, ker_shape, stride, dilation)
+
+    return img[inds].max(axis=tuple(range(-len(ker_shape), 0)))
 
 def avgpool(img: DataNode, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> DataNode:
-    pass
+    assert (dim_diff := img.ndim - len(ker_shape)) >= 0
+    ker_shape = dim_diff * (1, ) + ker_shape
+    inds = _conv_indices(img.shape, ker_shape, stride, dilation)
+
+    return img[inds].mean(axis=tuple(range(-len(ker_shape), 0)))
 
 def exp(x: DataNode) -> DataNode:
     return np.e ** x
