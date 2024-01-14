@@ -217,13 +217,25 @@ class DataNode(Node):
         transpose_node = FunctionNode(Transpose())
         return transpose_node(self, axes)
         
-    def sum(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False):
+    def sum(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False) -> "DataNode":
         sum_node = FunctionNode(Sum())
         return sum_node(self, axis, keepdims)
 
-    def mean(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False):
-        return self.sum(axis, keepdims) / self.shape(axis)
+    def mean(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False) -> "DataNode":
+        if axis is None:
+            axis = np.arange(self.ndim)
+        sum = self.sum(axis, keepdims)
+        n = np.array(self.shape)[list(axis)].prod()
+        mean = 1 / n * sum
+        return mean
     
+    def max(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False) -> "DataNode":
+        sum_node = FunctionNode(Max())
+        return sum_node(self, axis, keepdims)
+    
+    def min(self, axis: Union[int, List[int], Tuple[int], None] = None, keepdims: bool = False) -> "DataNode":
+        return -(-self).max(axis, keepdims)
+
     def maximum(self, other: "DataNode" | Any) -> "DataNode":
         mask = self >= other
         return mask * self + ~mask * other

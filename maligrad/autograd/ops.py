@@ -62,12 +62,12 @@ class Matmul(Function):
 class Slice(Function):
 
     def forward(self, ctx, data: ndarray, slices: Any) -> ndarray:
-        ctx.save_for_backprop(slices, data.shape)
+        ctx.save_for_backprop(slices, data.shape, data.dtype)
         return data[slices]
     
     def backward(self, ctx, partial: ndarray) -> Tuple[ndarray]:
-        slices, original_shape = ctx.backprop_assets
-        template = np.zeros(original_shape)
+        slices, original_shape, original_dtype = ctx.backprop_assets
+        template = np.zeros(original_shape, original_dtype)
         #template[slices] += partial # TODO here you need np.add.at when array indexing!
         np.add.at(template, slices, partial)
         return (template, )
@@ -125,10 +125,10 @@ class Max(Function):
     def forward(self, ctx, data: ndarray, axis: int | tuple | None, keepdims: bool) -> Tuple[ndarray]:
         if axis is None:
             axis = tuple(range(data.ndim))
-        max_ =  data.max(axis=axis, keepdims=keepdims)
-        idxs = data == data.max(axis=axis, keepdims=True)
+        max_ = data.max(axis=axis, keepdims=True)
+        idxs = data == max_
         ctx.save_for_backprop(idxs, data.shape, data.dtype)
-        return max_
+        return max_ if keepdims else max_.squeeze(axis)
     
     def backward(self, ctx, partial: ndarray) -> Tuple[ndarray]:
         idxs, original_shape, original_dtype = ctx.backprop_assets
