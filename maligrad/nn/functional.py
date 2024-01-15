@@ -28,7 +28,7 @@ def _conv_indices(img_shape, ker_shape, stride, dilation):
 
 def conv(img: DataNode, ker: DataNode, dim: int, stride: int | tuple = 1, dilation: int | tuple = 1) -> DataNode:
     assert img.ndim >= dim and ker.ndim >= dim
-    img = DataNode.promote(img)
+    img, ker = DataNode.promote(img), DataNode.promote(ker)
     img_bdim, ker_bdim = img.ndim-dim, ker.ndim-dim
 
     ker = ker.unsqueeze(tuple(range(ker_bdim, ker_bdim+img.ndim)))
