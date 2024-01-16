@@ -1,7 +1,6 @@
 import numpy as np
 
-from maligrad.autograd.ops import Reshape
-from maligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import Variable, Reshape
 
 from .base import OpTester
 
@@ -10,7 +9,7 @@ def test_basic():
     tester = OpTester(
         fcn=Reshape(),
         inputs=[
-            DataNode(np.array([1, 2, 3, 4]), True),
+            Variable(np.array([1, 2, 3, 4]), True),
             (2, 2)
             ], 
         expected_output=np.array([[1, 2], [3, 4]]), 
@@ -27,7 +26,7 @@ def test_auto_axis():
     tester = OpTester(
         fcn=Reshape(),
         inputs=[
-            DataNode(np.array([1, 2, 3, 4]), True),
+            Variable(np.array([1, 2, 3, 4]), True),
             (1, -1, 1, 2) # <=> (1, 2, 1, 2)
             ], 
         expected_output=np.array([[[1, 2]], [[3, 4]]]), 

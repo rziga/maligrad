@@ -1,7 +1,6 @@
 import numpy as np
 
-from maligrad.autograd.ops import Transpose
-from maligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import Variable, Transpose
 
 from .base import OpTester
 
@@ -9,7 +8,7 @@ def test_basic():
     tester = OpTester(
         fcn=Transpose(),
         inputs=[
-            DataNode(np.array([[1, 2], [3, 4]]), True),
+            Variable(np.array([[1, 2], [3, 4]]), True),
             (1, 0)
             ], 
         expected_output=np.array([[1, 3], [2, 4]]), 
@@ -26,7 +25,7 @@ def test_auto_axis():
     tester = OpTester(
         fcn=Transpose(),
         inputs=[
-            DataNode(np.array([[1, 2], [3, 4]]), True),
+            Variable(np.array([[1, 2], [3, 4]]), True),
             None
             ], 
         expected_output=np.array([[1, 3], [2, 4]]), 

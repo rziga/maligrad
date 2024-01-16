@@ -1,15 +1,15 @@
 import numpy as np
-from maligrad.nn.layers import ReLU, DataNode
+from maligrad.nn.layers import ReLU, Variable
 
 def test_forward():
-    X = DataNode(np.array([-1, 0, 1]))
+    X = Variable(np.array([-1, 0, 1]))
     act = ReLU()
     out = act(X)
 
     assert np.allclose(out.data, np.array([0, 0, 1]))
 
 def test_backward():
-    X = DataNode(np.array([-1, 0, 1.]), requires_grad=True)
+    X = Variable(np.array([-1, 0, 1.]), requires_grad=True)
     act = ReLU()
     out = act(X)
     out.sum().backward()

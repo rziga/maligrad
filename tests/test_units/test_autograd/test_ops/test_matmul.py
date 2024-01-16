@@ -1,7 +1,6 @@
 import numpy as np
 
-from maligrad.autograd.ops import Matmul
-from maligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import Variable, Matmul
 
 from .base import OpTester
 
@@ -10,8 +9,8 @@ def test_basic():
     shape1 = (2, 4)
     shape2 = (4, 3)
     shape_out = (shape1[0], shape2[1])
-    a = DataNode(2*np.ones(shape1), True)
-    b = DataNode(3*np.ones(shape2), True)
+    a = Variable(2*np.ones(shape1), True)
+    b = Variable(3*np.ones(shape2), True)
 
     tester = OpTester(
         fcn=Matmul(),
@@ -30,8 +29,8 @@ def test_broadcast():
     shape1 = (2, 1, 2, 3, 4)
     shape2 = (2, 1, 4, 1)
     shape_out = (2, 2, 2, 3, 1)
-    a = DataNode(2*np.ones(shape1), True)
-    b = DataNode(3*np.ones(shape2), True)
+    a = Variable(2*np.ones(shape1), True)
+    b = Variable(3*np.ones(shape2), True)
 
     tester = OpTester(
         fcn=Matmul(),

@@ -1,15 +1,15 @@
 import numpy as np
-from maligrad.nn.layers import Softmax, DataNode
+from maligrad.nn.layers import Softmax, Variable
 
 def test_forward():
-    X = DataNode(np.array([-1, 0, 1]))
+    X = Variable(np.array([-1, 0, 1]))
     act = Softmax()
     out = act(X)
 
     assert np.allclose(out.data, np.array(np.exp(X.data) / np.exp(X.data).sum(axis=-1, keepdims=True)))
 
 def test_backward():
-    X = DataNode(np.array([-1., 0, 1]), requires_grad=True)
+    X = Variable(np.array([-1., 0, 1]), requires_grad=True)
     act = Softmax()
     out = act(X)
     out[0].backward()

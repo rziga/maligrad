@@ -1,15 +1,14 @@
 import numpy as np
 
-from maligrad.autograd.ops import Pow
-from maligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import Variable, Pow
 
 from .base import OpTester
 
 
 def test_basic():
     shape = (3, 3)
-    a = DataNode(2*np.ones(shape), True)
-    b = DataNode(3*np.ones(shape), True)
+    a = Variable(2*np.ones(shape), True)
+    b = Variable(3*np.ones(shape), True)
     tester = OpTester(
         fcn=Pow(),
         inputs=[a, b],
@@ -27,8 +26,8 @@ def test_broadcast():
     tester = OpTester(
         fcn=Pow(),
         inputs=[
-            DataNode(2*np.ones((2, 1, 2)), True),
-            DataNode(3*np.ones((2, 1)), True),
+            Variable(2*np.ones((2, 1, 2)), True),
+            Variable(3*np.ones((2, 1)), True),
             ],
         expected_output=8 * np.ones((2, 2, 2)),
         backward_seed=np.ones((2, 2, 2)),

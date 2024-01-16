@@ -1,5 +1,5 @@
 import numpy as np
-from maligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import Variable
 
 
 # Two tests taken from micrograd:
@@ -7,7 +7,7 @@ from maligrad.autograd.engine import DataNode
 # To avoid using pytorch, I just ran the tests and collected the expected results.
 
 def test_micrograd_sanity_check():
-    x = DataNode(-4.0, requires_grad=True)
+    x = Variable(-4.0, requires_grad=True)
     z = 2 * x + 2 + x
     q = z.maximum(0) + z * x
     h = (z * z).maximum(0)
@@ -18,8 +18,8 @@ def test_micrograd_sanity_check():
     assert x.grad == 46.
 
 def test_micrograd_more_ops():
-    a = DataNode(-4.0, requires_grad=True)
-    b = DataNode(2.0, requires_grad=True)
+    a = Variable(-4.0, requires_grad=True)
+    b = Variable(2.0, requires_grad=True)
     c = a + b
     d = a * b + b**3
     c += c + 1

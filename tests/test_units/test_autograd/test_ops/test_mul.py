@@ -1,7 +1,6 @@
 import numpy as np
 
-from maligrad.autograd.ops import Mul
-from maligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import Variable, Mul
 
 from .base import OpTester
 
@@ -11,8 +10,8 @@ def test_basic():
     tester = OpTester(
         fcn=Mul(), 
         inputs=[
-            DataNode(np.ones(shape), True),
-            DataNode(2*np.ones(shape), True),
+            Variable(np.ones(shape), True),
+            Variable(2*np.ones(shape), True),
             ],
         expected_output=2*np.ones(shape),
         backward_seed=np.ones(shape),
@@ -28,8 +27,8 @@ def test_broadcast():
     tester = OpTester(
         fcn=Mul(),
         inputs=[
-            DataNode(2*np.ones((2, 1, 2)), True),
-            DataNode(3*np.ones((2, 1)), True),
+            Variable(2*np.ones((2, 1, 2)), True),
+            Variable(3*np.ones((2, 1)), True),
             ],
         expected_output=2*3*np.ones((2, 2, 2)),
         backward_seed=np.ones((2, 2, 2)),

@@ -1,7 +1,7 @@
 from typing import Any
 import numpy as np
 
-from maligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import Variable
 from maligrad.nn.engine import Module, Parameter
 import maligrad.nn.functional as F
 
@@ -14,17 +14,17 @@ class Linear(Module):
         self.W = Parameter(data=np.zeros((in_features, out_features)))
         self.b = Parameter(data=np.zeros((out_features, 1))) if bias else 0
 
-    def forward(self, x: DataNode) -> DataNode:
+    def forward(self, x: Variable) -> Variable:
         return x @ self.W + self.b
 
 class ReLU(Module):
 
-    def forward(self, x: DataNode) -> DataNode:
+    def forward(self, x: Variable) -> Variable:
         return F.relu(x)
     
 class Sigmoid(Module):
 
-    def forward(self, x: DataNode) -> DataNode:
+    def forward(self, x: Variable) -> Variable:
         return F.sigmoid(x)
 
 class Softmax(Module):
@@ -33,7 +33,7 @@ class Softmax(Module):
         super().__init__()
         self.axis = axis
 
-    def forward(self, x: DataNode) -> DataNode:
+    def forward(self, x: Variable) -> Variable:
         return F.softmax(x, self.axis)
     
 class Conv(Module):
@@ -47,7 +47,7 @@ class Conv(Module):
         self.b   = Parameter(data=np.zeros((out_chan, *([1] * len(ker_shape))))) if bias else 0
         self.stride, self.dilation, self.dim = stride, dilation, len(ker_shape)+1
 
-    def forward(self, x: DataNode) -> DataNode:
+    def forward(self, x: Variable) -> Variable:
         return F.conv(
             x, self.ker, self.dim,
             self.stride, self.dilation

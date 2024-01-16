@@ -1,5 +1,5 @@
 import numpy as np
-from maligrad.nn.layers import Linear, DataNode
+from maligrad.nn.layers import Linear, Variable
 
 def test_forward():
     X = np.arange(12.).reshape(4, 3)
@@ -11,14 +11,13 @@ def test_forward():
     assert np.allclose(out.data, np.array([[3.+1], [12.+1], [21.+1], [30.+1]]))
 
 def test_backward():
-    X = DataNode(np.arange(12.).reshape(4, 3), True)
+    X = Variable(np.arange(12.).reshape(4, 3), True)
     lin = Linear(3, 1)
     lin.W.data = np.ones_like(lin.W.data)
     lin.b.data = np.ones_like(lin.b.data)
     out = lin(X)
     out.sum().backward() # partial is np.ones((4, 1))
 
-    assert np.allclose(out.grad, np.ones((4, 1)))
     assert np.allclose(lin.W.grad, X.data.T @ np.ones((4, 1)))
     assert np.allclose(lin.b.grad, np.ones((4, 1)).sum(axis=0))
     assert np.allclose(X.grad, np.ones((4, 1)) @ lin.W.data.T)

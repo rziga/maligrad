@@ -1,6 +1,6 @@
 import numpy as np
 
-from maligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import Variable
 
 
 def test_basic():

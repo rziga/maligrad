@@ -1,5 +1,5 @@
 import numpy as np
-from ..autograd.engine import DataNode
+from ..autograd.engine import Variable
 
 # I want the functions here to be independent of batch dims
 # e.g. I want conv to work with img with shape [..., b2, b1, c, h, w]
@@ -26,9 +26,9 @@ def _conv_indices(img_shape, ker_shape, stride, dilation):
 
     return tuple(indices) # [ndim, *out_shape, *ker_shape]
 
-def conv(img: DataNode, ker: DataNode, dim: int, stride: int | tuple = 1, dilation: int | tuple = 1) -> DataNode:
+def conv(img: Variable, ker: Variable, dim: int, stride: int | tuple = 1, dilation: int | tuple = 1) -> Variable:
     assert img.ndim >= dim and ker.ndim >= dim
-    img = DataNode.promote(img)
+    img, ker = Variable.ensure(img), Variable.ensure(ker)
     img_bdim, ker_bdim = img.ndim-dim, ker.ndim-dim
 
     ker = ker.unsqueeze(tuple(range(ker_bdim, ker_bdim+img.ndim)))
@@ -37,33 +37,33 @@ def conv(img: DataNode, ker: DataNode, dim: int, stride: int | tuple = 1, dilati
     
     return (windows * ker).sum(tuple(range(-img.ndim, 0)))
 
-def maxpool(img: DataNode, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> DataNode:
+def maxpool(img: Variable, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> Variable:
     assert (dim_diff := img.ndim - len(ker_shape)) >= 0
     ker_shape = dim_diff * (1, ) + ker_shape
     inds = _conv_indices(img.shape, ker_shape, stride, dilation)
 
     return img[inds].max(axis=tuple(range(-len(ker_shape), 0)))
 
-def avgpool(img: DataNode, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> DataNode:
+def avgpool(img: Variable, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> Variable:
     assert (dim_diff := img.ndim - len(ker_shape)) >= 0
     ker_shape = dim_diff * (1, ) + ker_shape
     inds = _conv_indices(img.shape, ker_shape, stride, dilation)
 
     return img[inds].mean(axis=tuple(range(-len(ker_shape), 0)))
 
-def exp(x: DataNode) -> DataNode:
+def exp(x: Variable) -> Variable:
     return np.e ** x
 
-def relu(x: DataNode) -> DataNode:
+def relu(x: Variable) -> Variable:
     return x.maximum(0)
 
-def sigmoid(x: DataNode) -> DataNode:
+def sigmoid(x: Variable) -> Variable:
     return 1 / (1 + exp(-x))
 
-def softmax(x: DataNode, axis: int = -1) -> DataNode:
+def softmax(x: Variable, axis: int = -1) -> Variable:
     expx = exp(x)
     return expx / expx.sum(axis, keepdims=True)
 
-def categorical_crossentropy(y: DataNode, target: DataNode):
+def categorical_crossentropy(y: Variable, target: Variable):
     # TODO make this batch independent
     return y[range(target.shape[-1]), target]

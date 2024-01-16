@@ -1,7 +1,6 @@
 import numpy as np
 
-from maligrad.autograd.ops import Max
-from maligrad.autograd.engine import DataNode
+from maligrad.autograd.engine import Variable, Max
 
 from .base import OpTester
 
@@ -9,7 +8,7 @@ def test_basic():
     tester = OpTester(
         fcn=Max(),
         inputs=[
-            DataNode(np.array([1, 2, 3, 4]), True),
+            Variable(np.array([1, 2, 3, 4]), True),
             None,
             False
             ], 
@@ -28,7 +27,7 @@ def test_single_axis():
     tester = OpTester(
         fcn=Max(),
         inputs=[
-            DataNode(np.array([[1., 2], [3, 4]]), True),
+            Variable(np.array([[1., 2], [3, 4]]), True),
             0,
             False
             ], 
@@ -47,7 +46,7 @@ def test_keepdims():
     tester = OpTester(
         fcn=Max(),
         inputs=[
-            DataNode(np.array([[1., 2], [3, 4]]), True),
+            Variable(np.array([[1., 2], [3, 4]]), True),
             None,
             True
             ], 
