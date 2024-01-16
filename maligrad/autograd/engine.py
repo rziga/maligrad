@@ -24,23 +24,25 @@ class Variable:
         self.data = np.array(data)
         self.grad = None
         self.requires_grad = requires_grad
-        if requires_grad and _src_fcn is None:
-            self.src_fcn = self.accumulate_grad
-        else:
-            self.src_fcn = _src_fcn
+        self.src_fcn = self if requires_grad and _src_fcn is None else _src_fcn
         self.src_index = _src_index
 
     def accumulate_grad(self, partial, index):
+        # construct gradient if not present and update it
         if self.grad is None:
             self.grad = np.zeros_like(self.data)
         accumulate_grad(self.grad, partial)
 
     def backward(self, partial: ndarray | None = None):
+        # check if backprop can be started
         err_msg = "Cannot start backprop {reason}"
         assert self.requires_grad, err_msg.format(reason="from Variable that does not require grad.")
         if partial is None:
             assert self.size == 1, err_msg.format(reason="from non-singleton Variable.")
             partial = np.ones_like(self.data)
+        
+        # deposit grad into source fcn, toposort compute graph
+        # and propagate grads through each function node
         self.src_fcn.accumulate_grad(partial, self.src_index)
         for fcn in reversed(self.src_fcn.toposort()):
             fcn.propagate_grads()
@@ -225,15 +227,15 @@ class Variable:
         return self.reshape(new_shape)
 
 
-###############################
-# like merging 
+################################
+# Function here is if you joined
 # torch's Function and context
-###############################
+################################
     
 class Function:
     previous: list[tuple["Function", int]] # functions and indexes of return that generated input Variables
     grad_buffer: list # gradient buffer for each of the outputs
-    grad_buffer_info: list # shapes and dtypes of such buffers
+    grad_buffer_info: list # shapes and dtypes of such buffers - so buffers are constructed only when needed
     saved_ctx: list # assets saved during forward that are needed for backward
 
     is_differentiable = True
@@ -242,11 +244,15 @@ class Function:
         self.saved_ctx = []
 
     def __call__(self, *inputs: Any) -> Any:
-        self.previous = [(i.src_fcn, i.src_index) if isinstance(i, Variable) else (None, None) for i in inputs]
+        # setup
+        self.previous = [
+            (i.src_fcn, i.src_index) if isinstance(i, Variable) else (None, None) 
+            for i in inputs]
         requires_grad = self.is_differentiable and\
             any(i.requires_grad for i in inputs if isinstance(i, Variable))
         forward_data = [i.data if isinstance(i, Variable) else i for i in inputs]
 
+        # propagate inputs through self and construct Vars
         outputs = [Variable(
             data=data,
             requires_grad=requires_grad,
@@ -254,23 +260,30 @@ class Function:
             _src_index=i if requires_grad else 0
         ) for i, data in enumerate(self.forward(*forward_data))]
 
-        self.grad_buffer_info = [(v.shape, v.dtype) if isinstance(v, Variable) else None for v in outputs]
+        # save buffer info and clear buffers if full
+        self.grad_buffer_info = [
+            (v.shape, v.dtype) if isinstance(v, Variable) else None
+            for v in outputs]
         self.grad_buffer = None
         return outputs if len(outputs) > 1 else outputs[0]
     
     def accumulate_grad(self, partial, index):
         if self.grad_buffer is None:
-            self.grad_buffer = [np.zeros(shape, dtype) for shape, dtype in self.grad_buffer_info]
+            self.grad_buffer = [
+                np.zeros(shape, dtype) 
+                for shape, dtype in self.grad_buffer_info]
         accumulate_grad(self.grad_buffer[index], partial)
     
     def propagate_grads(self):
+        # update collected partial gradients through self
         updated_partials = self.backward(*self.grad_buffer)
-        for (fcn, i), partial in zip(self.previous, updated_partials):
-            if fcn is None: continue
-            if isinstance(fcn, Function):
-                fcn.accumulate_grad(partial, i)
-            else:
-                fcn(partial, i)
+
+        # deposit updated partial gradients into previous buffers/variables
+        for (prev, i), partial in zip(self.previous, updated_partials):
+            if isinstance(prev, (Function, Variable)):
+                prev.accumulate_grad(partial, i)
+        
+        # clear buffers
         self.grad_buffer = None
         self.grad_buffer_info = None
     
@@ -290,8 +303,7 @@ class Function:
         if self not in visited:
             visited.add(self)
             for p, _ in self.previous:
-                if not isinstance(p, Function): 
-                    continue # TODO make cleaner
+                if not isinstance(p, Function): continue 
                 out += p.toposort(visited)
             out.append(self)
         return out
