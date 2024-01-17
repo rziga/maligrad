@@ -1,7 +1,9 @@
 import numpy as np
 from numpy import ndarray
+
 from typing import Any, Callable, Union
 import operator
+from abc import ABC
 
 def accumulate_grad(grad: ndarray, partial: ndarray) -> None:
     # sum leads if partial bigger than grad
@@ -19,6 +21,13 @@ def accumulate_grad(grad: ndarray, partial: ndarray) -> None:
 ###############################
 
 class Variable:
+
+    # so numpy knows not to promote to ndarray
+    # 1337 just because I'm a leet hackerman
+    __array_priority__ = 1337
+
+    def __array__(self):
+        return self.data
     
     def __init__(self, data, requires_grad = False, _src_fcn = None, _src_index = 0):
         self.data = np.array(data)
@@ -62,9 +71,6 @@ class Variable:
     @property
     def dtype(self):
         return self.data.dtype
-
-    def __array__(self):
-        return self.data
 
     @classmethod
     def ensure(cls, other):
@@ -232,7 +238,7 @@ class Variable:
 # torch's Function and context
 ################################
     
-class Function:
+class Function(ABC):
     previous: list[tuple["Function", int]] # functions and indexes of return that generated input Variables
     grad_buffer: list # gradient buffer for each of the outputs
     grad_buffer_info: list # shapes and dtypes of such buffers - so buffers are constructed only when needed

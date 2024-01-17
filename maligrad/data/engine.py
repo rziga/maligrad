@@ -16,6 +16,7 @@ class Dataset(ABC):
     
 
 class DataLoader:
+    # TODO: add shuffling, determinism, change so all data is batched each epoch
 
     def __init__(self, dataset: Dataset, batch_size: int, shuffle: bool = True, seed: int | None = None) -> None:
         self.dataset = dataset
