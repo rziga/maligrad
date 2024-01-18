@@ -12,7 +12,7 @@ class Linear(Module):
                  out_features: int, bias: bool = True) -> None:
         super().__init__()
         self.W = Parameter(data=np.zeros((in_features, out_features)))
-        self.b = Parameter(data=np.zeros((out_features, 1))) if bias else 0
+        self.b = Parameter(data=np.zeros(out_features)) if bias else 0
 
     def forward(self, x: Variable) -> Variable:
         return x @ self.W + self.b
@@ -51,4 +51,4 @@ class Conv(Module):
         return F.conv(
             x, self.ker, self.dim,
             self.stride, self.dilation
-            ).unsqueeze(-self.dim) + self.b
+            ).squeeze(-self.dim) + self.b

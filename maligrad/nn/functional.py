@@ -37,19 +37,24 @@ def conv(img: Variable, ker: Variable, dim: int, stride: int | tuple = 1, dilati
     
     return (windows * ker).sum(tuple(range(-img.ndim, 0)))
 
+# TODO merge pooling operations
 def maxpool(img: Variable, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> Variable:
     assert (dim_diff := img.ndim - len(ker_shape)) >= 0
-    ker_shape = dim_diff * (1, ) + ker_shape
-    inds = _conv_indices(img.shape, ker_shape, stride, dilation)
+    ker_shape_pad = dim_diff * (1, ) + ker_shape
+    stride = dim_diff * (1, ) + (stride if isinstance(stride, tuple) else (stride,)*len(ker_shape))
+    dilation = dim_diff * (1, ) + (dilation if isinstance(dilation, tuple) else (dilation,)*len(ker_shape))
+    inds = _conv_indices(img.shape, ker_shape_pad, stride, dilation)
 
-    return img[inds].max(axis=tuple(range(-len(ker_shape), 0)))
+    return img[inds].max(axis=tuple(range(-len(ker_shape_pad), 0)))
 
 def avgpool(img: Variable, ker_shape: tuple, stride: int | tuple = 1, dilation: int | tuple = 1) -> Variable:
     assert (dim_diff := img.ndim - len(ker_shape)) >= 0
-    ker_shape = dim_diff * (1, ) + ker_shape
-    inds = _conv_indices(img.shape, ker_shape, stride, dilation)
+    ker_shape_pad = dim_diff * (1, ) + ker_shape
+    stride = dim_diff * (1, ) + (stride if isinstance(stride, tuple) else (stride,)*len(ker_shape))
+    dilation = dim_diff * (1, ) + (dilation if isinstance(dilation, tuple) else (dilation,)*len(ker_shape))
+    inds = _conv_indices(img.shape, ker_shape_pad, stride, dilation)
 
-    return img[inds].mean(axis=tuple(range(-len(ker_shape), 0)))
+    return img[inds].mean(axis=tuple(range(-len(ker_shape_pad), 0)))
 
 def exp(x: Variable) -> Variable:
     return np.e ** x
