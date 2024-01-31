@@ -172,7 +172,7 @@ class Variable:
         return invert_node(self)
     
     def __str__(self) -> str:
-        return f"""Variable(\ndata=\n{self.data},\ngrad=\n{self.grad}\n)"""
+        return f"""Variable(data={self.data})"""
     
     def __repr__(self) -> str:
         return str(self)
@@ -203,7 +203,7 @@ class Variable:
 
     def mean(self, axis: Union[int, list[int], tuple[int], None] = None, keepdims: bool = False) -> "Variable":
         if axis is None:
-            axis = np.arange(self.ndim)
+            axis = tuple(range(self.ndim))
         sum = self.sum(axis, keepdims)
         n = np.array(self.shape)[list(axis)].prod()
         mean = 1 / n * sum
@@ -232,6 +232,12 @@ class Variable:
         new_shape = np.expand_dims(self.data, axes).shape # this is kinda funny
         return self.reshape(new_shape)
 
+    def exp(self) -> "Variable":
+        return np.e ** self
+
+    def log(self) -> "Variable":
+        log_node = Log()
+        return log_node(self)
 
 ################################
 # Function here is if you joined
@@ -348,6 +354,17 @@ class Pow(Function):
         base, exp = self.saved_ctx
         return (exp * base ** (exp - 1) * partial,
             base ** exp * np.log(base) * partial) # TODO: fix warning when log <= 0
+    
+
+class Log(Function):
+
+    def forward(self, x: ndarray):
+        self.save_for_backprop(x)
+        return np.log(x),
+    
+    def backward(self, partial: ndarray):
+        x, = self.saved_ctx
+        return 1 / x * partial,
 
 
 class Matmul(Function):
@@ -427,13 +444,14 @@ class Max(Function):
             axis = tuple(range(data.ndim))
         max_ = data.max(axis=axis, keepdims=True)
         idxs = data == max_
-        self.save_for_backprop(idxs, data.shape, data.dtype)
+        self.save_for_backprop(idxs, data.shape, data.dtype, axis, keepdims)
         return (max_,) if keepdims else (max_.squeeze(axis),)
     
     def backward(self, partial: ndarray) -> tuple[ndarray]:
-        idxs, original_shape, original_dtype = self.saved_ctx
+        idxs, original_shape, original_dtype, axis, keepdims = self.saved_ctx
         template = np.zeros(original_shape, original_dtype)
-        template[idxs] += partial.flatten()
+        partial = np.expand_dims(partial, axis) if not keepdims else partial
+        template[idxs] += (template + partial)[idxs] # tad hacky
         return (template, None, None)
 
 
