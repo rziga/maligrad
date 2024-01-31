@@ -53,11 +53,11 @@ class Module(ABC):
 
 class Sequential(Module):
 
-    def __init__(self, modules: List[Module]):
+    def __init__(self, *modules: tuple[Module]):
         super().__init__()
         self.modules = modules
 
-    def forward(self, *inputs: Variable | Any) -> Variable:
+    def forward(self, inputs: tuple[Variable | Any]) -> Variable:
         out = inputs
         for module in self.modules:
             out = module(out)

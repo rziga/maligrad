@@ -66,6 +66,5 @@ def softmax(x: Variable, axis: int = -1) -> Variable:
     expx = exp(x)
     return expx / expx.sum(axis, keepdims=True)
 
-def categorical_crossentropy(y: Variable, target: Variable):
-    # TODO make this batch independent
-    return y[range(target.shape[-1]), target]
+def categorical_crossentropy(y: Variable, target: Variable, eps=1e-8):
+    return -(y[..., range(target.shape[-1]), target] + eps).log().mean()

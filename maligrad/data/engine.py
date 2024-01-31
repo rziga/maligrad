@@ -34,4 +34,4 @@ class DataLoader:
             self.dataset[self._indices[idx]]
             for idx in range(start_idx, stop_idx)
         )
-        return [np.hstack(e) for e in zip(*batch_iter)]
+        return [np.stack(e, axis=0) for e in zip(*batch_iter)]
