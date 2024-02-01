@@ -1,8 +1,8 @@
 ![logo](assets/logo.svg)
 
-### [maligrad](https://maps.app.goo.gl/kZGt592YTsWSrcWA9) is a small NumPy-array-based autograd engine with an included NN library
+[maligrad](https://maps.app.goo.gl/kZGt592YTsWSrcWA9) is a small NumPy-array-based autograd engine with an included NN library
 
-NumPy being its only dependency, maligrad can do the majority of things numpy can:
+It can do the majority of things numpy can:
 
 ```py
 a = Variable(2 * np.ones((3, 3)), requires_grad=True)
@@ -54,7 +54,7 @@ So, I wondered how much more work would be needed to make a similar automatic di
 I thought that things like broadcasting, indexing and all the other special array operations would complicate things a great deal.
 
 It turns out that not that much is different.
-For comparison, micrograd's engine is around 70 lines of code, while maligrad has roughly 330 lines under the hood.
+For comparison, micrograd's engine is around 70 lines of code, while maligrad has roughly 350 lines under the hood.
 And that includes all the extra operations that are not included in micrograd.
 At the end, the broadcasting and array operation shenanigans sorted themselves out almost on their own (I attribute this to my great planning and look-ahead. No blind luck was involved.).
 
@@ -126,6 +126,18 @@ If you wish to run the example notebooks, also install jupyter and matplotlib:
 pip install ipykernel matplotlib
 ```
 
+# Acknowledgements
+
+Besides [micrograd](https://github.com/karpathy/micrograd), the project also draws inspiration from [pytorch](https://github.com/pytorch/pytorch) (`nn` interface).
+[Tinygrad](https://github.com/tinygrad/tinygrad) is also cool, though not many influences were drawn from it.
+
+# Disclaimers
+
+The project may look like it's useful in a way.
+The very professionally executed logo may add to the effect.
+It is not.
+It was written purely for my getting familiar with how automatic differentiation works, and probably has a multitude of bugs (even when I was thinking it was completed and set on to write out the examples, I encountered a couple of them).
+You better stick with pytorch or JAX.
 
 # TODOs
 
